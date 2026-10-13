@@ -1,0 +1,7 @@
+name: pr
+on: { pull_request: {} }
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+    with: { env: staging, preview: true }
+    secrets: inherit

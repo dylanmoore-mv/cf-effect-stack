@@ -1,0 +1,21 @@
+name: infra
+on:
+  pull_request: { paths: ["terraform/**"] }
+  push: { branches: [main], paths: ["terraform/**"] }
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    strategy: { matrix: { env: [staging, prod] } }
+    environment: ${{ matrix.env == 'prod' && 'production' || 'preview' }}
+    defaults: { run: { working-directory: terraform } }
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+      PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform init && terraform workspace select ${{ matrix.env }}
+      - run: terraform plan -var-file=${{ matrix.env }}.tfvars -out=plan
+      - if: github.ref == 'refs/heads/main'
+        run: terraform apply plan
